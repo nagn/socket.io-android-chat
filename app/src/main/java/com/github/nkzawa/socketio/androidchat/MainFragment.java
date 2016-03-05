@@ -250,8 +250,7 @@ public class MainFragment extends Fragment {
 
     private void leave() {
         mUsername = null;
-        mSocket.disconnect();
-        mSocket.connect();
+        mSocket.emit("leave party");
         startSignIn();
     }
 

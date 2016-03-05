@@ -70,7 +70,7 @@ public class LoginActivity extends Activity {
                 attemptHost();
             }
         });
-
+        mSocket.on("host error", onHostError);
         mSocket.on("host", onHost);
         mSocket.on("join", onJoin);
     }
@@ -79,6 +79,8 @@ public class LoginActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
 
+        mSocket.off("host error", onHostError);
+        mSocket.off("host", onHost);
         mSocket.off("join", onJoin);
     }
 
@@ -93,6 +95,7 @@ public class LoginActivity extends Activity {
 
         // Store values at the time of the login attempt.
         String username = mUsernameView.getText().toString().trim();
+        String partyname = mPartynameView.getText().toString().trim();
 
         // Check for a valid username.
         if (TextUtils.isEmpty(username)) {
@@ -103,10 +106,20 @@ public class LoginActivity extends Activity {
             return;
         }
 
+        // Check for a valid partyname.
+        if (TextUtils.isEmpty(partyname)) {
+            // There was an error; don't attempt login and focus the first
+            // form field with an error.
+            mPartynameView.setError(getString(R.string.error_field_required));
+            mPartynameView.requestFocus();
+            return;
+        }
+
         mUsername = username;
+        mPartyname = partyname;
 
         // perform the user login attempt.
-        mSocket.emit("add user", username);
+        mSocket.emit("join party", mPartyname);
     }
 
     private void attemptHost() {
@@ -115,7 +128,7 @@ public class LoginActivity extends Activity {
 
         // Store values at the time of the login attempt.
         String username = mUsernameView.getText().toString().trim();
-        String partyName = mPartynameView.getText().toString().trim();
+        String partyname = mPartynameView.getText().toString().trim();
 
         // Check for a valid username.
         if (TextUtils.isEmpty(username)) {
@@ -126,10 +139,20 @@ public class LoginActivity extends Activity {
             return;
         }
 
+        // Check for a valid partyname.
+        if (TextUtils.isEmpty(partyname)) {
+            // There was an error; don't attempt login and focus the first
+            // form field with an error.
+            mPartynameView.setError(getString(R.string.error_field_required));
+            mPartynameView.requestFocus();
+            return;
+        }
+
         mUsername = username;
+        mPartyname = partyname;
 
         // perform the user login attempt.
-        mSocket.emit("create party", partyName);
+        mSocket.emit("create party", partyname);
     }
 
     private Emitter.Listener onJoin = new Emitter.Listener() {
@@ -155,13 +178,56 @@ public class LoginActivity extends Activity {
     private Emitter.Listener onHost = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
-            Log.d("Log", "OnHost!");
+            Log.d("ONHOST DEBUG", "OnHost!");
             JSONObject data = (JSONObject) args[0];
+
+            int numUsers;
+            try {
+                numUsers = data.getInt("numUsers");
+            } catch (JSONException e) {
+                return;
+            }
 
             Intent intent = new Intent();
             intent.putExtra("username", "test");
+            intent.putExtra("numUsers", numUsers);
             setResult(RESULT_OK, intent);
             finish();
+        }
+    };
+
+    private Emitter.Listener onHostError = new Emitter.Listener() {
+        @Override
+        public void call(Object... args) {
+            Log.d("ONHOST DEBUG", "Error!!");
+            JSONObject data = (JSONObject) args[0];
+
+            String error;
+            try {
+                error = data.getString("error");
+            } catch (JSONException e) {
+                return;
+            }
+            switch (error) {
+                case ("Party already in use"):
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mPartynameView.setError(getString(R.string.error_field_party_in_use));
+                            mPartynameView.requestFocus();
+                        }
+                    });
+                    break;
+                case ("Party does not exist"):
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mPartynameView.setError(getString(R.string.error_field_party_does_not_exist));
+                            mPartynameView.requestFocus();
+                        }
+                    });
+                    break;
+            }
         }
     };
 }

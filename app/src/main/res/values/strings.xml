@@ -18,5 +18,7 @@
     <string name="message_user_left">%s left</string>
     <string name="user_action_typing">is typing</string>
     <string name="action_host_party">Host</string>
+    <string name="error_field_party_in_use">Party name taken!</string>
+    <string name="error_field_party_does_not_exist">Party does not exist</string>
 
 </resources>
