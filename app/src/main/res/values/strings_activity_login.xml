@@ -3,6 +3,7 @@
 
     <!-- Strings related to login -->
     <string name="prompt_username">What\'s your nickname?</string>
+    <string name="prompt_party">What\'s your party name?</string>
     <string name="action_sign_in">Join</string>
     <string name="action_sign_in_short">Join</string>
 

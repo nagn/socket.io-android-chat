@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -23,8 +24,10 @@ import org.json.JSONObject;
 public class LoginActivity extends Activity {
 
     private EditText mUsernameView;
+    private EditText mPartynameView;
 
     private String mUsername;
+    private String mPartyname;
 
     private Socket mSocket;
 
@@ -42,29 +45,41 @@ public class LoginActivity extends Activity {
             @Override
             public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
                 if (id == R.id.login || id == EditorInfo.IME_NULL) {
-                    attemptLogin();
+                    attemptJoin();
                     return true;
                 }
                 return false;
             }
         });
 
-        Button signInButton = (Button) findViewById(R.id.sign_in_button);
-        signInButton.setOnClickListener(new OnClickListener() {
+        // Set up party form
+        mPartynameView = (EditText) findViewById(R.id.party_id_input);
+
+        Button joinButton = (Button) findViewById(R.id.sign_in_button);
+        joinButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                attemptLogin();
+                attemptJoin();
             }
         });
 
-        mSocket.on("login", onLogin);
+        Button hostButton = (Button) findViewById(R.id.host_button);
+        hostButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                attemptHost();
+            }
+        });
+
+        mSocket.on("host", onHost);
+        mSocket.on("join", onJoin);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
-        mSocket.off("login", onLogin);
+        mSocket.off("join", onJoin);
     }
 
     /**
@@ -72,7 +87,7 @@ public class LoginActivity extends Activity {
      * If there are form errors (invalid username, missing fields, etc.), the
      * errors are presented and no actual login attempt is made.
      */
-    private void attemptLogin() {
+    private void attemptJoin() {
         // Reset errors.
         mUsernameView.setError(null);
 
@@ -94,7 +109,30 @@ public class LoginActivity extends Activity {
         mSocket.emit("add user", username);
     }
 
-    private Emitter.Listener onLogin = new Emitter.Listener() {
+    private void attemptHost() {
+        // Reset errors.
+        mUsernameView.setError(null);
+
+        // Store values at the time of the login attempt.
+        String username = mUsernameView.getText().toString().trim();
+        String partyName = mPartynameView.getText().toString().trim();
+
+        // Check for a valid username.
+        if (TextUtils.isEmpty(username)) {
+            // There was an error; don't attempt login and focus the first
+            // form field with an error.
+            mUsernameView.setError(getString(R.string.error_field_required));
+            mUsernameView.requestFocus();
+            return;
+        }
+
+        mUsername = username;
+
+        // perform the user login attempt.
+        mSocket.emit("create party", partyName);
+    }
+
+    private Emitter.Listener onJoin = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
             JSONObject data = (JSONObject) args[0];
@@ -109,6 +147,19 @@ public class LoginActivity extends Activity {
             Intent intent = new Intent();
             intent.putExtra("username", mUsername);
             intent.putExtra("numUsers", numUsers);
+            setResult(RESULT_OK, intent);
+            finish();
+        }
+    };
+
+    private Emitter.Listener onHost = new Emitter.Listener() {
+        @Override
+        public void call(Object... args) {
+            Log.d("Log", "OnHost!");
+            JSONObject data = (JSONObject) args[0];
+
+            Intent intent = new Intent();
+            intent.putExtra("username", "test");
             setResult(RESULT_OK, intent);
             finish();
         }
